@@ -82,7 +82,7 @@ The repository contains the following summarized directories:
 | Directory | Description |
 |---|---|
 | `configs/` | Hydra configuration files for all scripts. Sub-folders cover `data` (dataset paths and splits), `experiments` (full experiment presets combining model + hyperparameters), `model` (architecture hyperparameters), `suite` (multi-region forecast suites), and `test_data` (test-set paths). Root-level YAMLs (`train.yaml`, `forecast.yaml`, `submit.yaml`) are the default configs for each script. |
-| `configs/experiments/` | Ready-to-use experiment presets for the three baselines (`baseline_mlp`, `baseline_parametric`, `baseline_sundquist`). Pass one with `+experiment=<name>` to reproduce a baseline run end-to-end. |
+| `configs/experiments/` | Ready-to-use experiment presets for the three baselines (`baseline_mlp`, `baseline_parametric`, `baseline_sundquist`). Pass one with `+experiments=<name>` to reproduce a baseline run end-to-end. |
 | `configs/model/` | Per-architecture hyperparameter files (`mlp.yaml`, `parametric.yaml`, `sundquist.yaml`). Create a new file here when you implement your own model. |
 | `configs/suite/` | Suite configs (`val.yaml`, `test.yaml`) that instruct `forecast.py` to produce all four regional forecast files in one go. |
 | `data/` | Runtime data directory (not committed). Sub-folders are `train_data/` (downloaded zarr archives and validation/test targets), `models/` (saved checkpoints and training logs, keyed by `exp_name`), and `forecasts/` (forecast netCDF files, keyed by `exp_name`). |
@@ -163,7 +163,7 @@ between different implemented models.
 **New to Hydra?** Hydra is a configuration framework used by all scripts here.
 The short version: every configuration key can be overridden directly on the
 command line as ``key=value`` (e.g. ``device=cuda``), and preset configuration
-groups can be loaded with ``+group=name`` (e.g. ``+experiment=baseline_mlp``).
+groups can be loaded with ``+group=name`` (e.g. ``+experiments=baseline_mlp``).
 You do not need to edit any YAML file to run the provided examples.
 
 The following examples use the baseline multi-layered perceptron (MLP) model.
@@ -200,8 +200,8 @@ To switch to a different baseline, use the `+experiment` flag with one of the
 presets under `configs/experiments/`:
 
 ```bash
-python scripts/train.py +experiment=baseline_parametric device=cuda
-python scripts/train.py +experiment=baseline_sundquist device=cuda
+python scripts/train.py +experiments=baseline_parametric device=cuda
+python scripts/train.py +experiments=baseline_sundquist device=cuda
 ```
 
 Forecasting
@@ -279,7 +279,7 @@ with your model for all four configurations. The following command would run
 the sundquist model for the validation suite:
 
     ```bash
-    python scripts/forecast.py +experiment=baseline_sundquist +suite=val
+    python scripts/forecast.py +experiments=baseline_sundquist +suite=val
     ```
 
 The files would be stored as:
@@ -429,7 +429,7 @@ approach:
   skill score of ~0 corresponds to Sundqvist performance).
 
 All three follow the same training interface and can be swapped by passing
-``+experiment=<name>`` to ``train.py``.
+``+experiments=<name>`` to ``train.py``.
 
 
 Own implementation
@@ -470,7 +470,7 @@ new experiment config that references your model config and pass it with the
 `my_experiment.yaml` that references `my_model.yaml`, you can train it with:
 
 ```bash
-python scripts/train.py +experiment=my_experiment device=cuda
+python scripts/train.py +experiments=my_experiment device=cuda
 ```
 
 In this case, you no longer need to pass the `model` flag, since it is
