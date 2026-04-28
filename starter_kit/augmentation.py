@@ -60,19 +60,12 @@ class AugmentationPipeline:
 
 def random_flip_horizontal(data: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
     """
-    Randomly flip the data horizontally with 50% probability.
-    
-    Parameters
-    ----------
-    data : Dict[str, np.ndarray]
-        Input data dictionary
-        
-    Returns
-    -------
-    Dict[str, np.ndarray]
-        Data with horizontal flip applied randomly
+    Randomly flip the data horizontally with configurable probability.
     """
-    if np.random.random() > 0.5:
+    return random_flip_horizontal_with_prob(data)
+
+def random_flip_horizontal_with_prob(data: Dict[str, np.ndarray], probability: float = 0.5) -> Dict[str, np.ndarray]:
+    if np.random.random() < probability:
         for key in ['input_level', 'input_auxiliary', 'target']:
             if key in data:
                 data[key] = np.flip(data[key], axis=-1).copy()
@@ -81,19 +74,12 @@ def random_flip_horizontal(data: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]
 
 def random_flip_vertical(data: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
     """
-    Randomly flip the data vertically with 50% probability.
-    
-    Parameters
-    ----------
-    data : Dict[str, np.ndarray]
-        Input data dictionary
-        
-    Returns
-    -------
-    Dict[str, np.ndarray]
-        Data with vertical flip applied randomly
+    Randomly flip the data vertically with configurable probability.
     """
-    if np.random.random() > 0.5:
+    return random_flip_vertical_with_prob(data)
+
+def random_flip_vertical_with_prob(data: Dict[str, np.ndarray], probability: float = 0.5) -> Dict[str, np.ndarray]:
+    if np.random.random() < probability:
         for key in ['input_level', 'input_auxiliary', 'target']:
             if key in data:
                 data[key] = np.flip(data[key], axis=-2).copy()
@@ -102,33 +88,25 @@ def random_flip_vertical(data: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
 
 def random_rotation_90(data: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
     """
-    Randomly rotate data by 0, 90, 180, or 270 degrees.
-    
-    Parameters
-    ----------
-    data : Dict[str, np.ndarray]
-        Input data dictionary
-        
-    Returns
-    -------
-    Dict[str, np.ndarray]
-        Data with random 90-degree rotation applied
+    Randomly rotate data by 0, 90, 180, or 270 degrees with configurable probability.
     """
-    k = np.random.randint(0, 4)  # 0, 1, 2, or 3 times 90 degrees
-    if k == 0:
-        return data
-    
-    for key in ['input_level', 'input_auxiliary', 'target']:
-        if key in data:
-            # np.rot90 rotates counter-clockwise
-            # k=1: 90°, k=2: 180°, k=3: 270°
-            data[key] = np.rot90(data[key], k=k, axes=(-2, -1)).copy()
+    return random_rotation_90_with_prob(data)
+
+def random_rotation_90_with_prob(data: Dict[str, np.ndarray], probability: float = 1.0) -> Dict[str, np.ndarray]:
+    if np.random.random() < probability:
+        k = np.random.randint(0, 4)  # 0, 1, 2, or 3 times 90 degrees
+        if k == 0:
+            return data
+        for key in ['input_level', 'input_auxiliary', 'target']:
+            if key in data:
+                data[key] = np.rot90(data[key], k=k, axes=(-2, -1)).copy()
     return data
 
 
 def random_crop(
     data: Dict[str, np.ndarray],
-    crop_size: Optional[tuple] = None
+    crop_size: Optional[tuple] = None,
+    probability: float = 1.0
 ) -> Dict[str, np.ndarray]:
     """
     Randomly crop the data to a smaller size.
@@ -145,22 +123,19 @@ def random_crop(
     Dict[str, np.ndarray]
         Data with random crop applied
     """
-    if crop_size is None:
-        # Default to 80% crop
+    if np.random.random() < probability:
+        if crop_size is None:
+            # Default to 80% crop
+            h, w = data['input_level'].shape[-2:]
+            crop_size = (int(h * 0.8), int(w * 0.8))
         h, w = data['input_level'].shape[-2:]
-        crop_size = (int(h * 0.8), int(w * 0.8))
-    
-    h, w = data['input_level'].shape[-2:]
-    crop_h, crop_w = crop_size
-    
-    # Random top-left corner
-    top = np.random.randint(0, h - crop_h + 1)
-    left = np.random.randint(0, w - crop_w + 1)
-    
-    for key in ['input_level', 'input_auxiliary', 'target']:
-        if key in data:
-            data[key] = data[key][..., top:top+crop_h, left:left+crop_w].copy()
-    
+        crop_h, crop_w = crop_size
+        # Random top-left corner
+        top = np.random.randint(0, h - crop_h + 1)
+        left = np.random.randint(0, w - crop_w + 1)
+        for key in ['input_level', 'input_auxiliary', 'target']:
+            if key in data:
+                data[key] = data[key][..., top:top+crop_h, left:left+crop_w].copy()
     return data
 
 
@@ -234,6 +209,12 @@ def build_augmentation_pipeline(
     contrast: bool = False,
     crop: bool = False,
     crop_size: Optional[tuple] = None,
+    horizontal_flip_probability: float = 0.5,
+    vertical_flip_probability: float = 0.5,
+    rotation_probability: float = 1.0,
+    brightness_probability: float = 1.0,
+    contrast_probability: float = 1.0,
+    crop_probability: float = 1.0,
     seed: Optional[int] = None
 ) -> Callable:
     """
@@ -269,22 +250,17 @@ def build_augmentation_pipeline(
     transforms = []
     
     if horizontal_flip:
-        transforms.append(random_flip_horizontal)
-    
+        transforms.append(lambda d: random_flip_horizontal_with_prob(d, horizontal_flip_probability))
     if vertical_flip:
-        transforms.append(random_flip_vertical)
-    
+        transforms.append(lambda d: random_flip_vertical_with_prob(d, vertical_flip_probability))
     if rotation:
-        transforms.append(random_rotation_90)
-    
+        transforms.append(lambda d: random_rotation_90_with_prob(d, rotation_probability))
     if brightness:
-        transforms.append(random_brightness)
-    
+        transforms.append(lambda d: random_brightness(d) if np.random.random() < brightness_probability else d)
     if contrast:
-        transforms.append(random_contrast)
-    
+        transforms.append(lambda d: random_contrast(d) if np.random.random() < contrast_probability else d)
     if crop:
-        transforms.append(lambda d: random_crop(d, crop_size))
+        transforms.append(lambda d: random_crop(d, crop_size, crop_probability))
     
     if not transforms:
         # Return identity function if no augmentations enabled
@@ -311,3 +287,172 @@ def get_default_augmentation() -> Callable:
         contrast=False,
         crop=False
     )
+
+
+def target_shift(
+    data: Dict[str, np.ndarray],
+    shift_range: float = 0.05,
+    probability: float = 0.5
+) -> Dict[str, np.ndarray]:
+    """
+    Apply a random shift to target values.
+    
+    Adds a small constant offset to all target values, useful for
+    regularization or simulating systematic biases. The shift is
+    bounded to keep values within [0, 1] range.
+    
+    Parameters
+    ----------
+    data : Dict[str, np.ndarray]
+        Input data dictionary
+    shift_range : float
+        Maximum absolute shift as fraction of target range (e.g., 0.05 = ±5%)
+    probability : float
+        Probability of applying the shift
+        
+    Returns
+    -------
+    Dict[str, np.ndarray]
+        Data with target shift applied
+    """
+    if 'target' not in data or np.random.random() > probability:
+        return data
+    
+    # Generate random shift in range [-shift_range, shift_range]
+    shift = np.random.uniform(-shift_range, shift_range)
+    
+    # Apply shift and clip to [0, 1] to preserve target bounds
+    data['target'] = np.clip(data['target'] + shift, 0.0, 1.0).astype(data['target'].dtype)
+    
+    return data
+
+
+def target_spatial_shift(
+    data: Dict[str, np.ndarray],
+    max_shift: int = 5,
+    probability: float = 0.5
+) -> Dict[str, np.ndarray]:
+    """
+    Apply a random spatial shift to target values.
+    
+    Translates the target array by a random offset in the spatial
+    dimensions (H, W). The shift is applied independently in each
+    direction with wrap-around (circular) filling.
+    
+    Parameters
+    ----------
+    data : Dict[str, np.ndarray]
+        Input data dictionary
+    max_shift : int
+        Maximum shift in pixels in each direction
+    probability : float
+        Probability of applying the shift
+        
+    Returns
+    -------
+    Dict[str, np.ndarray]
+        Data with spatial target shift applied
+    """
+    if 'target' not in data or np.random.random() > probability:
+        return data
+    
+    target = data['target']
+    
+    # Generate random shifts for height and width
+    shift_h = np.random.randint(-max_shift, max_shift + 1)
+    shift_w = np.random.randint(-max_shift, max_shift + 1)
+    
+    if shift_h == 0 and shift_w == 0:
+        return data
+    
+    # Apply roll for circular shift (wrap-around)
+    data['target'] = np.roll(target, shift=(shift_h, shift_w), axis=(-2, -1)).copy()
+    
+    return data
+
+
+def build_augmentation_pipeline_with_shift(
+    horizontal_flip: bool = True,
+    vertical_flip: bool = True,
+    rotation: bool = True,
+    brightness: bool = False,
+    contrast: bool = False,
+    crop: bool = False,
+    crop_size: Optional[tuple] = None,
+    target_shift: bool = False,
+    shift_range: float = 0.05,
+    shift_probability: float = 0.5,
+    target_spatial_shift: bool = False,
+    max_spatial_shift: int = 5,
+    seed: Optional[int] = None
+) -> Callable:
+    """
+    Build an augmentation pipeline with optional target shift.
+    
+    Parameters
+    ----------
+    horizontal_flip : bool
+        Enable random horizontal flip
+    vertical_flip : bool
+        Enable random vertical flip
+    rotation : bool
+        Enable random 90-degree rotations
+    brightness : bool
+        Enable random brightness adjustment
+    contrast : bool
+        Enable random contrast adjustment
+    crop : bool
+        Enable random crop
+    crop_size : tuple, optional
+        (H, W) size for crop
+    target_shift : bool
+        Enable target value shift (deprecated, use target_spatial_shift)
+    shift_range : float
+        Maximum shift as fraction of target range
+    shift_probability : float
+        Probability of applying target shift
+    target_spatial_shift : bool
+        Enable spatial shift of target
+    max_spatial_shift : int
+        Maximum pixel shift in each direction
+    seed : int, optional
+        Random seed for reproducibility
+        
+    Returns
+    -------
+    Callable
+        Augmentation pipeline that can be passed to TrainDataset
+    """
+    if seed is not None:
+        np.random.seed(seed)
+    
+    transforms = []
+    
+    if horizontal_flip:
+        transforms.append(random_flip_horizontal)
+    
+    if vertical_flip:
+        transforms.append(random_flip_vertical)
+    
+    if rotation:
+        transforms.append(random_rotation_90)
+    
+    if brightness:
+        transforms.append(random_brightness)
+    
+    if contrast:
+        transforms.append(random_contrast)
+    
+    if crop:
+        transforms.append(lambda d: random_crop(d, crop_size))
+    
+    if target_spatial_shift:
+        transforms.append(lambda d: target_spatial_shift(d, max_spatial_shift, shift_probability))
+    elif target_shift:
+        transforms.append(lambda d: target_shift(d, shift_range, shift_probability))
+    
+    if not transforms:
+        # Return identity function if no augmentations enabled
+        return lambda x: x
+    
+    return AugmentationPipeline(transforms)
