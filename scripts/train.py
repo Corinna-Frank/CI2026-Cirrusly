@@ -32,7 +32,7 @@ from omegaconf import DictConfig
 # Internal modules
 from starter_kit.data import TrainDataset
 from starter_kit.layers import InputNormalisation
-from starter_kit.augmentation import build_augmentation_pipeline
+from starter_kit.augmentation import build_augmentation_pipeline_with_shift
 
 
 main_logger = logging.getLogger(__name__)
@@ -107,7 +107,7 @@ def _build_loaders(
     augmentation = None
     if cfg.get('augmentation', {}).get('enabled', False):
         aug_cfg = cfg.augmentation
-        augmentation = build_augmentation_pipeline(
+        augmentation = build_augmentation_pipeline_with_shift(
             horizontal_flip=aug_cfg.get('horizontal_flip', True),
             vertical_flip=aug_cfg.get('vertical_flip', True),
             rotation=aug_cfg.get('rotation', True),
@@ -115,6 +115,15 @@ def _build_loaders(
             contrast=aug_cfg.get('contrast', False),
             crop=aug_cfg.get('crop', False),
             crop_size=tuple(aug_cfg.get('crop_size', [])) if aug_cfg.get('crop_size') else None,
+            horizontal_flip_probability=aug_cfg.get('horizontal_flip_probability', 0.5),
+            vertical_flip_probability=aug_cfg.get('vertical_flip_probability', 0.5),
+            rotation_probability=aug_cfg.get('rotation_probability', 1.0),
+            brightness_probability=aug_cfg.get('brightness_probability', 1.0),
+            contrast_probability=aug_cfg.get('contrast_probability', 1.0),
+            crop_probability=aug_cfg.get('crop_probability', 1.0),
+            target_spatial_shift=aug_cfg.get('target_spatial_shift', False),
+            max_spatial_shift=aug_cfg.get('max_spatial_shift', 5),
+            shift_probability=aug_cfg.get('shift_probability', 0.5),
             seed=aug_cfg.get('seed', None),
         )
     

@@ -16,4 +16,18 @@ augmentation:
   contrast: false
   crop: false
   # crop_size: [128, 128]  # Uncomment and set if crop is enabled
+  
+  # Target spatial shift augmentation
+  target_spatial_shift: false
+  max_spatial_shift: 2  # Maximum pixel shift in each direction
+  shift_probability: 0.3  # Probability of applying shift
+  
   seed: null  # Set to an integer for reproducible augmentations
+
+# Probability parameters for each augmentation
+horizontal_flip_probability: 0.5
+  vertical_flip_probability: 0.5
+  rotation_probability: 1.0
+  brightness_probability: 1.0
+  contrast_probability: 1.0
+  crop_probability: 1.0
