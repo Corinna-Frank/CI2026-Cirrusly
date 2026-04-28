@@ -1,0 +1,9 @@
+# @package _global_
+
+model:
+    _target_: starter_kit.models.random_forest.RandomForestModel
+    n_estimators: 300
+    max_depth: 20
+
+network:
+    _target_: starter_kit.models.dummy_network.DummyNetwork

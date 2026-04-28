@@ -1,0 +1,8 @@
+# @package _global_
+
+# @package _global_
+
+defaults:
+  - override /model: rf
+
+exp_name: experiment_rf

@@ -1,0 +1,13 @@
+defaults:
+  - data: default
+  - model: mlp
+  - hydra: default
+  - _self_
+
+exp_name: baseline_mlp
+store_path: data/models/${exp_name}
+device: cpu
+seed: 42
+n_epochs: 10
+batch_size: 32
+learning_rate: 0.001
