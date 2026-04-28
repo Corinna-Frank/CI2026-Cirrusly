@@ -5,3 +5,15 @@ num_workers: 4
 threads_limit: shared
 pin_memory: true
 persistent_workers: true
+
+# Data augmentation settings
+augmentation:
+  enabled: true
+  horizontal_flip: true
+  vertical_flip: true
+  rotation: true
+  brightness: false
+  contrast: false
+  crop: false
+  # crop_size: [128, 128]  # Uncomment and set if crop is enabled
+  seed: null  # Set to an integer for reproducible augmentations

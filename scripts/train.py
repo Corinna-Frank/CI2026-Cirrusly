@@ -32,6 +32,7 @@ from omegaconf import DictConfig
 # Internal modules
 from starter_kit.data import TrainDataset
 from starter_kit.layers import InputNormalisation
+from starter_kit.augmentation import build_augmentation_pipeline
 
 
 main_logger = logging.getLogger(__name__)
@@ -102,13 +103,30 @@ def _build_loaders(
     Tuple[DataLoader, DataLoader]
         Training loader and validation loader.
     '''
+    # Build augmentation pipeline if enabled
+    augmentation = None
+    if cfg.get('augmentation', {}).get('enabled', False):
+        aug_cfg = cfg.augmentation
+        augmentation = build_augmentation_pipeline(
+            horizontal_flip=aug_cfg.get('horizontal_flip', True),
+            vertical_flip=aug_cfg.get('vertical_flip', True),
+            rotation=aug_cfg.get('rotation', True),
+            brightness=aug_cfg.get('brightness', False),
+            contrast=aug_cfg.get('contrast', False),
+            crop=aug_cfg.get('crop', False),
+            crop_size=tuple(aug_cfg.get('crop_size', [])) if aug_cfg.get('crop_size') else None,
+            seed=aug_cfg.get('seed', None),
+        )
+    
     train_ds = TrainDataset(
         cfg.train_path,
         threads_limit=cfg.threads_limit,
+        augmentation=augmentation,
     )
     val_ds = TrainDataset(
         cfg.val_path,
         threads_limit=cfg.threads_limit,
+        augmentation=augmentation,
     )
     loader_kwargs = dict(
         batch_size=cfg.batch_size,
